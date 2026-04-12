@@ -1,0 +1,26 @@
+@startuml
+skinparam packageStyle rectangle
+
+package "sb.cli" as cli
+package "sb.settings" as settings
+package "sb.smartbugs" as smartbugs
+package "sb.tools" as tools
+package "sb.tasks" as tasks
+package "sb.analysis" as analysis
+package "sb.docker" as docker
+package "sb.solidity" as solidity
+
+cli --> settings : builds and updates settings
+cli --> smartbugs : invokes main workflow
+
+smartbugs --> tools : loads selected tools
+smartbugs --> tasks : creates tasks
+smartbugs --> analysis : starts execution
+smartbugs --> solidity : resolves pragma and solc
+smartbugs --> settings : uses runtime settings
+
+analysis --> docker : runs tool containers
+
+tasks --> tools : associates tasks with tools
+tasks --> settings : uses execution settings
+@enduml

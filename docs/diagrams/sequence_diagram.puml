@@ -1,0 +1,51 @@
+@startuml
+actor User
+
+participant "sb.cli" as CLI
+participant "Settings" as SETTINGS
+participant "sb.smartbugs" as SB
+participant "sb.tools" as TOOLS
+participant "sb.solidity" as SOL
+participant "sb.docker" as DOCKER
+participant "sb.analysis" as ANALYSIS
+
+User -> CLI: executes SmartBugs command
+CLI -> SETTINGS: create Settings object
+CLI -> SETTINGS: update(site configuration)
+CLI -> SETTINGS: update(config file)
+CLI -> SETTINGS: update(CLI arguments)
+CLI -> SB: main(settings)
+
+SB -> SETTINGS: freeze()
+SB -> TOOLS: load(settings.tools)
+SB -> SB: collect_files(settings.files)
+
+loop for each input file
+  SB -> SOL: get_pragma_contractnames()
+
+  loop for each selected tool
+    alt tool requires solc
+      SB -> SOL: ensure_solc_versions_loaded()
+      SB -> SOL: get_solc_version(pragma)
+      SB -> SOL: get_solc_path(version)
+    end
+
+    SB -> DOCKER: is_loaded(tool.image)
+    alt image not loaded
+      SB -> DOCKER: load(tool.image)
+    end
+
+    SB -> SB: create Task
+  end
+end
+
+SB -> ANALYSIS: run(tasks, settings)
+
+loop for each task
+  ANALYSIS -> DOCKER: execute tool container
+end
+
+DOCKER --> ANALYSIS: execution result
+ANALYSIS --> SB: analysis completed
+SB --> CLI: execution finished
+@enduml

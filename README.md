@@ -1,3 +1,6 @@
+⚠️ This repository includes an academic extension (IGES project).
+See README_IGES.md for details.
+
 # SmartBugs: A Framework for Analysing Ethereum Smart Contracts
 
 <a href="https://github.com/smartbugs/smartbugs/releases"><img alt="Smartbugs release" src="https://img.shields.io/github/release/smartbugs/smartbugs.svg"></a>

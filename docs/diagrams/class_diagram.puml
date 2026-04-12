@@ -1,0 +1,64 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Settings {
+  +frozen: bool
+  +files: list[tuple[Optional[str], str]]
+  +main: bool
+  +runtime: bool
+  +tools: list[str]
+  +runid: str
+  +overwrite: bool
+  +processes: int
+  +timeout: Optional[int]
+  +cpu_quota: Optional[int]
+  +mem_limit: Optional[str]
+  +network: Optional[str]
+  +continue_on_errors: bool
+  +results: str
+  +log: str
+  +json: bool
+  +sarif: bool
+  +quiet: bool
+  --
+  +freeze(): void
+  +resultdir(toolid, toolmode, absfn, relfn): str
+  +update(settings): void
+  +dict(): dict[str, Any]
+}
+
+class Tool {
+  +id: Optional[str]
+  +mode: Optional[str]
+  +image: Optional[str]
+  +name: Optional[str]
+  +origin: Optional[str]
+  +version: Optional[str]
+  +info: Optional[str]
+  +parser: Optional[str]
+  +output: Optional[str]
+  +bin: Optional[str]
+  +solc: Optional[bool]
+  +cpu_quota: Optional[int]
+  +mem_limit: Optional[str]
+  +network: Optional[str]
+  +absbin: Optional[str]
+  --
+  +command(filename, timeout, bin, main): Optional[str]
+  +entrypoint(filename, timeout, bin, main): Optional[str]
+  +dict(): dict[str, Any]
+}
+
+class Task {
+  +absfn: str
+  +relfn: str
+  +rdir: str
+  +solc_version: Optional[str]
+  +solc_path: Optional[str]
+  +tool: Tool
+  +settings: Settings
+}
+
+Task --> Tool : uses
+Task --> Settings : uses
+@enduml

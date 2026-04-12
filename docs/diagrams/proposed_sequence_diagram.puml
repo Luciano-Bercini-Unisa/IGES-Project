@@ -1,0 +1,50 @@
+@startuml
+actor User
+
+participant "sb.cli" as CLI
+participant "Settings" as SETTINGS
+participant "SmartBugs Orchestrator\n(sb.smartbugs)" as SB
+participant "Feature Extractor\n(SCsVulLyzer)" as FE
+participant "ML Models (joblib)" as ML
+participant "Tool Selection Logic" as TS
+participant "sb.tools" as TOOLS
+participant "sb.analysis" as ANALYSIS
+participant "sb.docker" as DOCKER
+
+User -> CLI: executes intelligent command
+CLI -> SETTINGS: create and update configuration
+CLI -> SB: main(settings)
+
+SB -> SETTINGS: freeze()
+
+SB -> SB: collect_files(settings.files)
+
+loop for each input file
+  SB -> FE: extract features from contract
+  FE --> SB: full feature vector
+
+  SB -> SB: select required features (41 features)
+
+  loop for each SWC model
+    SB -> ML: load model (.joblib)
+    SB -> ML: predict(features)
+    ML --> SB: predicted tool
+  end
+
+  SB -> TS: aggregate predictions
+  TS --> SB: final tool list\n(remove duplicates and "nessun_tool")
+end
+
+SB -> TOOLS: load(selected tools)
+SB -> SB: collect_tasks(...)
+
+SB -> ANALYSIS: run(tasks, settings)
+
+loop for each task
+  ANALYSIS -> DOCKER: execute tool container
+end
+
+DOCKER --> ANALYSIS: execution results
+ANALYSIS --> SB: analysis completed
+SB --> CLI: execution finished
+@enduml
