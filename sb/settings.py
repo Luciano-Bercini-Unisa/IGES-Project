@@ -21,6 +21,13 @@ class Settings:
         self.main: bool = False
         self.runtime: bool = False
         self.tools: list[str] = []
+        self.smart_select: bool = False
+        self.feature_extractor: str = os.path.join(
+            "external",
+            "SCsVulLyzer",
+            "SCsVulLyzer-V2.0",
+        )
+        self.model_paths: list[str] = [os.path.join("models", "ML_models", "*", "best_model.joblib")]
         self.runid: str = "${YEAR}${MONTH}${DAY}_${HOUR}${MIN}"
         self.overwrite: bool = False
         self.processes: int = 1
@@ -37,6 +44,7 @@ class Settings:
         self.json: bool = False
         self.sarif: bool = False
         self.quiet: bool = False
+
 
     def freeze(self) -> None:
         """Freeze settings and expand all template variables.
@@ -76,6 +84,7 @@ class Settings:
         )
         # Convert results path to Template for later substitution with tool/file-specific vars
         self.results = string.Template(self.results)  # type: ignore[assignment]
+
 
     def resultdir(self, toolid: str, toolmode: str, absfn: str, relfn: str) -> str:
         """Generate result directory path for a specific tool and file.
@@ -193,12 +202,19 @@ class Settings:
                 "json",
                 "sarif",
                 "continue_on_errors",
+                "smart_select",
             ):
                 try:
                     assert isinstance(v, bool)
                     setattr(self, k, v)
                 except Exception:
                     raise sb.errors.SmartBugsError(f"'{k}' needs to be a Boolean (in {settings}).")
+
+            elif k in ("feature_extractor",):
+                try:
+                    setattr(self, k, str(v).replace("/", os.path.sep))
+                except Exception:
+                    raise sb.errors.SmartBugsError(f"'{k}' needs to be a path (in {settings}).")
 
             elif k in ("results", "log"):
                 try:
@@ -231,8 +247,19 @@ class Settings:
                 except Exception:
                     raise sb.errors.SmartBugsError(f"'{k}' needs to be a string (in {settings}).")
 
+            elif k in ("model_paths",):
+                if not isinstance(v, list):
+                    v = [v]
+                try:
+                    setattr(self, k, [str(vi).replace("/", os.path.sep) for vi in v])
+                except Exception:
+                    raise sb.errors.SmartBugsError(
+                        f"'{k}' needs to be a string or a list of strings (in {settings})."
+                    )
+
             else:
                 raise sb.errors.SmartBugsError(f"Invalid key '{k}' (in {settings}).")
+
 
     def dict(self) -> dict[str, Any]:
         """Convert settings to dictionary representation.

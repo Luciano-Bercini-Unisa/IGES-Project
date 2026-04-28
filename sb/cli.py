@@ -54,6 +54,28 @@ def cli_args(defaults: "Settings") -> tuple[Optional[str], dict[str, Any]]:
         help=f"tools to run on the contracts{fmt_default(defaults.tools)}",
     )
     input.add_argument(
+        "--smart-select",
+        action="store_true",
+        default=None,
+        help=(
+            "automatically select tools using SCsVulLyzer features and ML models"
+            f"{fmt_default(defaults.smart_select)}"
+        ),
+    )
+    input.add_argument(
+        "--feature-extractor",
+        metavar="DIR",
+        type=str,
+        help=f"path to the SCsVulLyzer directory{fmt_default(defaults.feature_extractor)}",
+    )
+    input.add_argument(
+        "--model-paths",
+        metavar="PATTERN",
+        nargs="+",
+        type=str,
+        help=f"glob pattern specifying the ML model files{fmt_default(defaults.model_paths)}",
+    )
+    input.add_argument(
         "-f",
         "--files",
         metavar="PATTERN",

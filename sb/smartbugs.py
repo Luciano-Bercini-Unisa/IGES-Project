@@ -2,6 +2,7 @@ import glob
 import operator
 import os
 from typing import Optional
+from pathlib import Path
 
 import sb.analysis
 import sb.cfg
@@ -14,7 +15,13 @@ import sb.settings
 import sb.solidity
 import sb.tasks
 import sb.tools
+import sb.features
+import sb.models
 
+TOOL_ALIASES = {
+    "mythril-0.24.7": "mythril",
+    "slither-0.10.4": "slither",
+}
 
 def collect_files(patterns: list[tuple[Optional[str], str]]) -> list[tuple[str, str]]:
     files = []
@@ -169,9 +176,97 @@ def collect_tasks(
     return tasks
 
 
+def expand_model_paths(patterns: list[str]) -> list[Path]:
+    model_paths: list[Path] = []
+    for pattern in patterns:
+        for path in glob.glob(pattern, recursive=True):
+            model_path = Path(path)
+            if model_path.is_file():
+                model_paths.append(model_path)
+    return sorted(model_paths)
+
+
+def normalize_predicted_tool(tool: str) -> str:
+    return TOOL_ALIASES.get(tool, tool)
+
+
+def get_supported_tool_ids() -> set[str]:
+    try:
+        return {
+            entry
+            for entry in os.listdir(sb.cfg.TOOLS_HOME)
+            if os.path.isdir(os.path.join(sb.cfg.TOOLS_HOME, entry))
+        }
+    except OSError:
+        return set()
+
+
+def select_tools_intelligently(
+    files: list[tuple[str, str]],
+    settings: sb.settings.Settings,
+) -> list[str]:
+    model_paths = expand_model_paths(settings.model_paths)
+    if not model_paths:
+        raise sb.errors.SmartBugsError("No ML model files found for intelligent tool selection.")
+
+    supported_tools = get_supported_tool_ids()
+    selected_tools: list[str] = []
+    seen_tools: set[str] = set()
+    errors: list[str] = []
+
+    for absfn, _ in files:
+        if not absfn.endswith(".sol"):
+            continue
+
+        try:
+            features = sb.features.extract_features(absfn, settings.feature_extractor)
+            predictions = sb.models.select_tools_from_models(
+                features=features,
+                model_paths=model_paths,
+            )
+        except Exception as exc:
+            errors.append(f"{absfn}: {exc}")
+            continue
+
+        for prediction in predictions:
+            tool = normalize_predicted_tool(prediction)
+            if supported_tools and tool not in supported_tools:
+                continue
+            if tool in seen_tools:
+                continue
+            selected_tools.append(tool)
+            seen_tools.add(tool)
+
+    if errors:
+        if settings.continue_on_errors:
+            sb.logging.message(
+                sb.colors.warning(
+                    f"Warning: {len(errors)} error(s) during intelligent tool selection, continuing ..."
+                ),
+                "",
+            )
+            sb.logging.message("\n".join(sorted(errors)), "")
+        else:
+            raise sb.errors.SmartBugsError(
+                "Error(s) during intelligent tool selection:\n" + "\n".join(sorted(errors))
+            )
+
+    return selected_tools
+
 def main(settings: sb.settings.Settings) -> None:
-    settings.freeze()
     sb.logging.quiet = settings.quiet
+
+    sb.logging.message("Collecting files...")
+    files = collect_files(settings.files)
+    sb.logging.message(f"{len(files)} files to analyse")
+
+    if settings.smart_select:
+        sb.logging.message("Selecting tools using intelligent workflow...")
+        settings.tools = select_tools_intelligently(files, settings)
+        sb.logging.message(f"Selected tools: {', '.join(settings.tools) if settings.tools else 'none'}")
+
+    settings.freeze()
+
     sb.logging.message(
         sb.colors.success(f"Welcome to SmartBugs {sb.cfg.VERSION}!"), f"Settings: {settings}"
     )
@@ -179,10 +274,6 @@ def main(settings: sb.settings.Settings) -> None:
     tools = sb.tools.load(settings.tools)
     if not tools:
         sb.logging.message(sb.colors.warning("Warning: no tools selected!"))
-
-    sb.logging.message("Collecting files ...")
-    files = collect_files(settings.files)
-    sb.logging.message(f"{len(files)} files to analyse")
 
     sb.logging.message("Assembling tasks ...")
     tasks = collect_tasks(files, tools, settings)

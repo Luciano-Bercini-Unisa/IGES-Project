@@ -109,6 +109,18 @@ Full details (analysis, changes, impact, testing) are available in the project r
 
 ---
 
+## Additional Dependencies
+
+The intelligent tool-selection extension adds the following Python dependencies:
+
+- pandas
+- joblib
+- scikit-learn==1.6.1
+
+The scikit-learn version is pinned because the provided pre-trained `.joblib` models were serialized with scikit-learn 1.6.1.
+
+---
+
 ## Notes
 
 This is an academic project and not part of the official SmartBugs repository.

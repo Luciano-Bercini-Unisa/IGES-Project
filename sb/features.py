@@ -30,15 +30,15 @@ def extract_features(
         FeatureExtractionError: If the input file does not exist, SCsVulLyzer
         cannot be executed, or its output cannot be parsed.
     """
-    contract = Path(contract_path)
-    extractor = Path(extractor_dir)
+    contract = Path(contract_path).resolve()
+    extractor = Path(extractor_dir).resolve()
     main_file = extractor / "main.py"
     if not contract.exists():
         raise FeatureExtractionError(f"Contract file not found: {contract}")
     if not main_file.exists():
         raise FeatureExtractionError(f"SCsVulLyzer main.py not found: {main_file}")
     result = subprocess.run(
-        [sys.executable, str(main_file), str(contract)],
+        [sys.executable, "main.py", str(contract)],
         cwd=str(extractor),
         capture_output=True,
         text=True,
@@ -46,7 +46,8 @@ def extract_features(
     )
     if result.returncode != 0:
         raise FeatureExtractionError(
-            f"SCsVulLyzer failed with exit code {result.returncode}: {result.stderr}"
+            f"SCsVulLyzer failed with exit code {result.returncode} "
+            f"using Python interpreter {sys.executable}: {result.stderr}"
         )
     return parse_feature_output(result.stdout)
 
@@ -56,11 +57,17 @@ def parse_feature_output(output: str) -> dict[str, Any]:
     text = output.strip()
     if not text:
         raise FeatureExtractionError("SCsVulLyzer produced empty output.")
-    start = text.find("{")
-    end = text.rfind("}")
+    if "{" in text and "}" in text:
+        return _parse_dictionary_output(text)
+    return _parse_key_value_output(text)
+
+
+def _parse_dictionary_output(output: str) -> dict[str, Any]:
+    start = output.find("{")
+    end = output.rfind("}")
     if start == -1 or end == -1 or end < start:
         raise FeatureExtractionError("SCsVulLyzer output does not contain a feature dictionary.")
-    dictionary_text = text[start : end + 1]
+    dictionary_text = output[start : end + 1]
     try:
         features = ast.literal_eval(dictionary_text)
     except (SyntaxError, ValueError) as exc:
@@ -68,3 +75,30 @@ def parse_feature_output(output: str) -> dict[str, Any]:
     if not isinstance(features, dict):
         raise FeatureExtractionError("SCsVulLyzer output is not a dictionary.")
     return features
+
+
+def _parse_key_value_output(output: str) -> dict[str, Any]:
+    features: dict[str, Any] = {}
+    for line in output.splitlines():
+        if ": " not in line:
+            continue
+        key, value = line.split(": ", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        features[key] = _parse_feature_value(value)
+    if not features:
+        raise FeatureExtractionError("SCsVulLyzer output does not contain parseable features.")
+    return features
+
+
+def _parse_feature_value(value: str) -> Any:
+    if value == "":
+        return value
+    try:
+        if "." in value:
+            return float(value)
+        return int(value)
+    except ValueError:
+        return value

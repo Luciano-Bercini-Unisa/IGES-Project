@@ -88,3 +88,18 @@ def test_extract_features_command_failure(tmp_path: Path, mocker) -> None:
 
     with pytest.raises(FeatureExtractionError):
         extract_features(contract, extractor_dir)
+
+
+def test_parse_feature_output_key_value_lines() -> None:
+    output = """Number of total_lines: 131
+    Opcode Count Features_ADD: 65
+    Bytecode Length and Entropy_bytecode_entropy: 4.649650556931582
+    AST Features_ast_nodetype: SourceUnit
+    """
+
+    features = parse_feature_output(output)
+
+    assert features["Number of total_lines"] == 131
+    assert features["Opcode Count Features_ADD"] == 65
+    assert features["Bytecode Length and Entropy_bytecode_entropy"] == 4.649650556931582
+    assert features["AST Features_ast_nodetype"] == "SourceUnit"
