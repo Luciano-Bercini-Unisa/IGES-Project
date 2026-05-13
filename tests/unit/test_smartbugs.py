@@ -908,3 +908,77 @@ class TestMain:
 
         # Settings should be frozen after main is called
         assert settings.frozen
+
+
+class TestSmartSelection:
+    @patch("sb.analysis.run")
+    @patch("sb.smartbugs.collect_tasks")
+    @patch("sb.tools.load")
+    @patch("sb.smartbugs.select_tools_intelligently")
+    @patch("sb.smartbugs.collect_files")
+    def test_main_with_smart_select_updates_tools(
+        self,
+        mock_collect_files: MagicMock,
+        mock_select_tools: MagicMock,
+        mock_load_tools: MagicMock,
+        mock_collect_tasks: MagicMock,
+        mock_analysis_run: MagicMock,
+    ) -> None:
+        mock_collect_files.return_value = [("/path/Test.sol", "Test.sol")]
+        mock_select_tools.return_value = ["smartcheck"]
+
+        mock_tool = MagicMock()
+        mock_tool.id = "smartcheck"
+        mock_load_tools.return_value = [mock_tool]
+
+        mock_task = MagicMock()
+        mock_collect_tasks.return_value = [mock_task]
+
+        settings = Settings()
+        settings.files = [(None, "*.sol")]
+        settings.smart_select = True
+        settings.quiet = True
+
+        sb.smartbugs.main(settings)
+
+        assert settings.tools == ["smartcheck"]
+        mock_select_tools.assert_called_once_with([("/path/Test.sol", "Test.sol")], settings)
+        mock_load_tools.assert_called_once_with(["smartcheck"])
+        mock_collect_tasks.assert_called_once_with(
+            [("/path/Test.sol", "Test.sol")], [mock_tool], settings
+        )
+        mock_analysis_run.assert_called_once_with([mock_task], settings)
+
+
+    @patch("sb.models.select_tools_from_models")
+    @patch("sb.features.extract_features")
+    @patch("sb.smartbugs.expand_model_paths")
+    @patch("sb.smartbugs.get_supported_tool_ids")
+    def test_select_tools_intelligently_filters_and_normalizes_predictions(
+            self,
+            mock_supported_tools: MagicMock,
+            mock_model_paths: MagicMock,
+            mock_extract_features: MagicMock,
+            mock_select_tools: MagicMock,
+    ) -> None:
+        mock_supported_tools.return_value = {"slither", "mythril", "smartcheck"}
+        mock_model_paths.return_value = [Path("model.joblib")]
+        mock_extract_features.return_value = {"feature": 1}
+        mock_select_tools.return_value = ["slither-0.10.4", "slither-0.10.4", "unknown_tool"]
+
+        settings = Settings()
+        settings.feature_extractor = "external/SCsVulLyzer/SCsVulLyzer-V2.0"
+        settings.model_paths = ["models/ML_models/*/best_model.joblib"]
+
+        selected_tools = sb.smartbugs.select_tools_intelligently(
+            [("/path/Test.sol", "Test.sol")],
+            settings,
+        )
+
+        assert selected_tools == ["slither"]
+
+
+    def test_normalize_predicted_tool(self) -> None:
+        assert sb.smartbugs.normalize_predicted_tool("slither-0.10.4") == "slither"
+        assert sb.smartbugs.normalize_predicted_tool("mythril-0.24.7") == "mythril"
+        assert sb.smartbugs.normalize_predicted_tool("smartcheck") == "smartcheck"
