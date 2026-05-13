@@ -253,6 +253,7 @@ def select_tools_intelligently(
 
     return selected_tools
 
+
 def main(settings: sb.settings.Settings) -> None:
     sb.logging.quiet = settings.quiet
 

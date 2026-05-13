@@ -17,25 +17,6 @@ Automatically select the most suitable analysis tools, improving usability and e
 
 ---
 
-## Current Status
-
-The project is currently in the **analysis and design phase**.
-
-Completed activities:
-- Reverse engineering of SmartBugs architecture
-- Identification of core modules and responsibilities
-- Creation of:
-  - Package diagram
-  - Class diagram
-  - Sequence diagrams (current and proposed)
-  - Dependency matrix
-- Definition of Change Requests (CRs)
-- Impact analysis (SIS, CIS)
-
-➡ Implementation is ongoing.
-
----
-
 ## Proposed Workflow
 
 1. Extract features (SCsVulLyzer)
@@ -68,12 +49,8 @@ Design goals:
 
 ---
 
-## Architecture Insights
-
-- `sb.smartbugs` is the central orchestrator
-- System is modular and layered
-- Execution is isolated via Docker
-- Extension is feasible at orchestration level
+## Example run with smart settings.
+- python -m sb --smart-select -f samples/0.8.24/ERC20.sol
 
 ---
 
@@ -106,6 +83,13 @@ Design goals:
 ## Documentation
 
 Full details (analysis, changes, impact, testing) are available in the project report.
+
+---
+
+
+## Limitation
+
+The feature extraction module supports only Solidity contracts (.sol) and not compiled ones (.hex).
 
 ---
 

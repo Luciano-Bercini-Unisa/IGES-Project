@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import joblib
 import pandas as pd
 
-import sb.cfg
 import sb.smartbugs
-from sb.settings import Settings
+from unittest.mock import MagicMock, patch
 
 
 class FakeModel:
@@ -64,52 +62,44 @@ def make_required_features() -> dict[str, int]:
         "Opcode Count Features_SWAP4": 1,
     }
 
+import sb.smartbugs
+from sb.settings import Settings
 
 class TestSmartSelectIntegration:
-    def test_select_tools_intelligently_with_real_extractor_and_models(
+    def test_select_tools_intelligently(
         self,
         tmp_path: Path,
         monkeypatch,
     ) -> None:
         contract_file = tmp_path / "Test.sol"
         contract_file.write_text("pragma solidity ^0.8.0; contract Test {}", encoding="utf-8")
-
         features = make_required_features()
-
         extractor_dir = tmp_path / "extractor"
         extractor_dir.mkdir()
-
         main_py = extractor_dir / "main.py"
         main_py.write_text(
             "import sys\n"
             f"print({features!r})\n",
             encoding="utf-8",
         )
-
         models_root = tmp_path / "models" / "ML_models"
         swc1 = models_root / "swc_101"
         swc2 = models_root / "swc_107"
         swc1.mkdir(parents=True)
         swc2.mkdir(parents=True)
-
         joblib.dump(FakeModel("slither-0.10.4"), swc1 / "best_model.joblib")
         joblib.dump(FakeModel("smartcheck"), swc2 / "best_model.joblib")
-
         tools_home = tmp_path / "tools"
         (tools_home / "slither").mkdir(parents=True)
         (tools_home / "smartcheck").mkdir(parents=True)
-
         monkeypatch.setattr(sb.cfg, "TOOLS_HOME", str(tools_home))
-
         settings = Settings()
         settings.feature_extractor = str(extractor_dir)
         settings.model_paths = [str(models_root / "*" / "best_model.joblib")]
-
         selected_tools = sb.smartbugs.select_tools_intelligently(
             [(str(contract_file), "Test.sol")],
             settings,
         )
-
         assert selected_tools == ["slither", "smartcheck"]
 
 
@@ -127,9 +117,7 @@ class TestMainSmartSelectIntegration:
     ) -> None:
         contract_file = tmp_path / "Test.sol"
         contract_file.write_text("pragma solidity ^0.8.0; contract Test {}", encoding="utf-8")
-
         features = make_required_features()
-
         extractor_dir = tmp_path / "extractor"
         extractor_dir.mkdir()
         (extractor_dir / "main.py").write_text(
@@ -160,9 +148,8 @@ class TestMainSmartSelectIntegration:
         settings.feature_extractor = str(extractor_dir)
         settings.model_paths = [str(models_root / "*" / "best_model.joblib")]
         settings.quiet = True
-
+        # Run the main smartbugs function to trigger the real feature extraction and model prediction.
         sb.smartbugs.main(settings)
-
         assert settings.tools == ["smartcheck"]
         mock_load_tools.assert_called_once_with(["smartcheck"])
         mock_collect_tasks.assert_called_once()
