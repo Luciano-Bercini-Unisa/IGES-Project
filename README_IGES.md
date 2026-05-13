@@ -49,7 +49,7 @@ Design goals:
 
 ---
 
-## Example run with smart settings.
+## Example run with smart settings
 - python -m sb --smart-select -f samples/0.8.24/ERC20.sol
 
 ---
@@ -72,7 +72,7 @@ Design goals:
 
 ---
 
-## Testing Strategy (Planned)
+## Testing Strategy
 
 - Unit tests for new components
 - Integration tests for full workflow
