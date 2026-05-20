@@ -17,6 +17,16 @@ Automatically select the most suitable analysis tools, improving usability and e
 
 ---
 
+## Repository Structure
+
+- `sb/` → Core SmartBugs modules  
+- `tests/` → Test suite  
+- `external/SCsVulLyzer/` → Feature extraction  
+- `models/ML_models/` → Pre-trained models  
+- `docs/` → Report and diagrams  
+
+---
+
 ## Proposed Workflow
 
 1. Extract features (SCsVulLyzer)
@@ -54,42 +64,16 @@ Design goals:
 
 ---
 
-## Scope of Modifications
+## Limitations
 
-- No changes to core execution pipeline
-- New components added modularly
-- Limited impact on existing modules
-
----
-
-## Repository Structure
-
-- `sb/` → Core SmartBugs modules  
-- `tests/` → Test suite  
-- `external/SCsVulLyzer/` → Feature extraction  
-- `models/ML_models/` → Pre-trained models  
-- `docs/` → Report and diagrams  
-
----
-
-## Testing Strategy
-
-- Unit tests for new components
-- Integration tests for full workflow
-- Regression testing on existing features
+The feature extraction module supports only Solidity contracts (.sol) and not compiled ones (.hex).
+All 8 machine learning models sometimes predict "nessun_tool" for certain smart contracts (e.g. Government.sol).
 
 ---
 
 ## Documentation
 
 Full details (analysis, changes, impact, testing) are available in the project report.
-
----
-
-
-## Limitation
-
-The feature extraction module supports only Solidity contracts (.sol) and not compiled ones (.hex).
 
 ---
 
