@@ -27,38 +27,6 @@ Automatically select the most suitable analysis tools, improving usability and e
 
 ---
 
-## Proposed Workflow
-
-1. Extract features (SCsVulLyzer)
-2. Select relevant features
-3. Execute ML models
-4. Predict tools
-5. Aggregate and filter results
-6. Execute SmartBugs with selected tools
-
-Design goals:
-- Modular
-- Non-intrusive
-- Backward compatible
-
----
-
-## Change Requests
-
-### CR_1 - Feature Extraction
-- Integrate SCsVulLyzer
-- Extract structured features
-
-### CR_2 - ML Tool Selection
-- Load pre-trained models
-- Predict and aggregate tools
-
-### CR_3 - Workflow Integration
-- Extend orchestrator
-- Add intelligent execution mode
-
----
-
 ## Example run with smart settings
 - python -m sb --smart-select -f samples/0.8.24/ERC20.sol
 
@@ -66,8 +34,8 @@ Design goals:
 
 ## Limitations
 
-The feature extraction module supports only Solidity contracts (.sol) and not compiled ones (.hex).
-All 8 machine learning models sometimes predict "nessun_tool" for certain smart contracts (e.g. Government.sol).
+- The feature extraction module supports only Solidity contracts (.sol) and not compiled ones (.hex).
+- All 8 machine learning models sometimes predict "nessun_tool" for certain smart contracts (e.g. Government.sol).
 
 ---
 
